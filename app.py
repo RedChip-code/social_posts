@@ -174,36 +174,16 @@ def fetch_rss_feed(ticker):
     """Fetch RSS feed for a given ticker."""
     url = f"https://redchip.com/rss/company/{ticker.lower()}"
     
-    # Try multiple header combinations if first one fails
-    header_attempts = [
-        {  # First attempt - full headers
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept": "application/rss+xml, application/xml, text/xml, */*",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Connection": "keep-alive",
-        },
-        {  # Second attempt - minimal headers
-            "User-Agent": "Mozilla/5.0",
-        },
-        {  # Third attempt - no headers
-        }
-    ]
-    
-    for attempt, headers in enumerate(header_attempts):
-        try:
-            response = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
-            response.raise_for_status()
-            break  # Success, exit loop
-        except requests.exceptions.HTTPError as e:
-            if attempt == len(header_attempts) - 1:  # Last attempt
-                st.error(f"❌ Could not fetch RSS for {ticker}: HTTP {e.response.status_code}")
-                return []
-            # Otherwise try next header set
-        except Exception as e:
-            if attempt == len(header_attempts) - 1:  # Last attempt
-                st.error(f"❌ Could not fetch RSS for {ticker}: {e}")
-                return []
+    try:
+        # Use session for better compatibility
+        session = requests.Session()
+        session.headers.update({"User-Agent": "Mozilla/5.0"})
+        response = session.get(url, timeout=15, allow_redirects=True, stream=False)
+        response.raise_for_status()
+    except Exception as e:
+        st.error(f"❌ Could not fetch RSS for {ticker}: {str(e)[:100]}")
+        st.info("💡 Tip: You can manually add press releases instead of using RSS")
+        return []
 
     try:
         root = ET.fromstring(response.content)
