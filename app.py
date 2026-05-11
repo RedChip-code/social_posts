@@ -174,12 +174,22 @@ def fetch_rss_feed(ticker):
     """Fetch RSS feed for a given ticker."""
     url = f"https://redchip.com/rss/company/{ticker.lower()}"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Accept": "application/rss+xml, application/xml, text/xml, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
     }
 
     try:
-        response = requests.get(url, headers=headers, timeout=15)
+        response = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
         response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 415:
+            st.warning(f"⚠️ RSS endpoint for {ticker} not available (415 error)")
+        else:
+            st.error(f"❌ Could not fetch RSS for {ticker}: {e}")
+        return []
     except Exception as e:
         st.error(f"❌ Could not fetch RSS for {ticker}: {e}")
         return []
