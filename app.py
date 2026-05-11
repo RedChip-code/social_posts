@@ -172,21 +172,31 @@ def get_available_client_files(ticker):
 
 def fetch_rss_feed(ticker):
     """Fetch RSS feed for a given ticker."""
+    import urllib.request
+    import ssl
+    
     url = f"https://redchip.com/rss/company/{ticker.lower()}"
     
     try:
-        # Use session for better compatibility
-        session = requests.Session()
-        session.headers.update({"User-Agent": "Mozilla/5.0"})
-        response = session.get(url, timeout=15, allow_redirects=True, stream=False)
-        response.raise_for_status()
+        # Use urllib for maximum compatibility
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        
+        req = urllib.request.Request(
+            url,
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        with urllib.request.urlopen(req, context=ctx, timeout=15) as response:
+            content = response.read()
+            
     except Exception as e:
         st.error(f"❌ Could not fetch RSS for {ticker}: {str(e)[:100]}")
         st.info("💡 Tip: You can manually add press releases instead of using RSS")
         return []
 
     try:
-        root = ET.fromstring(response.content)
+        root = ET.fromstring(content)
     except ET.ParseError as e:
         st.error(f"❌ Could not parse RSS for {ticker}: {e}")
         return []
