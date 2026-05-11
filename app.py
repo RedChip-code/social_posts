@@ -91,9 +91,23 @@ def extract_section(text, start_label, end_label=None):
 
 def read_client_files_from_folder(ticker, char_limit=4000):
     """Read client reference files from local ticker folder."""
-    # Read from environment variable, or use ~/Downloads/client-files as default
-    default_path = str(Path.home() / "Downloads" / "client-files")
-    client_files_dir = Path(os.getenv("CLIENT_FILES_PATH", default_path))
+    # Try multiple paths in order:
+    # 1. Environment variable (for custom local paths)
+    # 2. Repo's ./client-files folder (works on GitHub + Streamlit Cloud)
+    # 3. Home ~/Downloads/client-files (local development)
+    
+    custom_path = os.getenv("CLIENT_FILES_PATH")
+    if custom_path:
+        client_files_dir = Path(custom_path)
+    else:
+        # Try repo folder first (works on Streamlit Cloud)
+        repo_path = Path(__file__).parent / "client-files"
+        if repo_path.exists():
+            client_files_dir = repo_path
+        else:
+            # Fall back to home Downloads (local development)
+            client_files_dir = Path.home() / "Downloads" / "client-files"
+    
     ticker_folder = client_files_dir / ticker.upper()
 
     if not ticker_folder.exists():
@@ -129,9 +143,23 @@ def read_client_files_from_folder(ticker, char_limit=4000):
 
 def get_available_client_files(ticker):
     """List available client files for a given ticker."""
-    # Read from environment variable, or use ~/Downloads/client-files as default
-    default_path = str(Path.home() / "Downloads" / "client-files")
-    client_files_dir = Path(os.getenv("CLIENT_FILES_PATH", default_path))
+    # Try multiple paths in order:
+    # 1. Environment variable (for custom local paths)
+    # 2. Repo's ./client-files folder (works on GitHub + Streamlit Cloud)
+    # 3. Home ~/Downloads/client-files (local development)
+    
+    custom_path = os.getenv("CLIENT_FILES_PATH")
+    if custom_path:
+        client_files_dir = Path(custom_path)
+    else:
+        # Try repo folder first (works on Streamlit Cloud)
+        repo_path = Path(__file__).parent / "client-files"
+        if repo_path.exists():
+            client_files_dir = repo_path
+        else:
+            # Fall back to home Downloads (local development)
+            client_files_dir = Path.home() / "Downloads" / "client-files"
+    
     ticker_folder = client_files_dir / ticker.upper()
 
     if not ticker_folder.exists():
@@ -444,11 +472,9 @@ with tab1:
                 for f in client_files:
                     st.markdown(f"- `{f}`")
         else:
-            default_path = str(Path.home() / "Downloads" / "client-files")
-            client_files_path = os.getenv("CLIENT_FILES_PATH", default_path)
-            st.warning(
-                f"No reference files found for **{ticker}**. "
-                f"Add files to `{client_files_path}/{ticker}/` to improve output quality."
+            st.info(
+                f"ℹ️ No reference files found for **{ticker}**. "
+                f"Reference files are pulled from the app repository."
             )
     else:
         st.info("👆 Enter a ticker in Step 1 to check for reference documents")
