@@ -7,6 +7,7 @@ import PyPDF2
 import docx
 import requests
 import xml.etree.ElementTree as ET
+import feedparser
 from bs4 import BeautifulSoup
 from anthropic import Anthropic
 from dotenv import load_dotenv
@@ -197,9 +198,26 @@ def fetch_rss_feed(ticker):
 
     try:
         root = ET.fromstring(content)
-    except ET.ParseError as e:
-        st.error(f"❌ Could not parse RSS for {ticker}: {e}")
-        return []
+    except ET.ParseError:
+        # Some RedChip RSS feeds contain unescaped HTML or mismatched tags
+        # that the strict XML parser rejects (e.g. SHAZ: "mismatched tag").
+        # Fall back to feedparser, which is tolerant of malformed feeds.
+        parsed = feedparser.parse(content)
+        releases = []
+        for entry in parsed.entries:
+            title = (entry.get("title") or "").strip()
+            link = (entry.get("link") or "").strip()
+            pub_date = (entry.get("published") or entry.get("updated") or "").strip()
+            if title and link:
+                releases.append({
+                    "title": title,
+                    "url": link,
+                    "pub_date": pub_date,
+                    "ticker": ticker
+                })
+        if not releases and getattr(parsed, "bozo", 0) and not parsed.entries:
+            st.error(f"❌ Could not parse RSS for {ticker}: {parsed.bozo_exception}")
+        return releases
 
     releases = []
     channel = root.find("channel")
