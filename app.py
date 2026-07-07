@@ -179,16 +179,12 @@ def fetch_rss_feed(ticker):
     url = f"https://redchip.com/rss/company/{ticker.lower()}"
     content = None
     
-    # Headers to bypass bot detection
+    # Minimal headers - just pass as browser
     headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/rss+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept-Encoding": "gzip, deflate",
-        "Connection": "keep-alive",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
     }
     
-    # Try requests library first with proper headers
+    # Try requests library first
     try:
         response = requests.get(url, timeout=20, headers=headers, allow_redirects=True)
         response.raise_for_status()
@@ -197,7 +193,7 @@ def fetch_rss_feed(ticker):
     except Exception as e:
         st.write(f"🔍 Requests failed: {str(e)[:60]}")
         try:
-            # Fallback to urllib with headers
+            # Fallback to urllib with minimal headers
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=20) as response:
                 content = response.read()
