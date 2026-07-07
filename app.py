@@ -174,6 +174,7 @@ def fetch_rss_feed(ticker):
     """Fetch RSS feed for a given ticker."""
     import urllib.request
     from html import unescape
+    import re
     
     url = f"https://redchip.com/rss/company/{ticker.lower()}"
     
@@ -207,14 +208,26 @@ def fetch_rss_feed(ticker):
     except ET.ParseError as e:
         # If parsing fails, try cleaning up common issues
         try:
-            # Decode and clean encoding issues
             text = content.decode('utf-8', errors='ignore')
+            
+            # Try to fix common XML issues
+            # Fix unclosed tags in CDATA sections
+            text = re.sub(r'(<description><!\[CDATA\[.*?)\s*(?=\]\]></description>)', r'\1', text, flags=re.DOTALL)
+            
             # Re-encode to bytes
             content = text.encode('utf-8')
             root = ET.fromstring(content)
         except ET.ParseError as e2:
-            st.error(f"❌ Could not parse RSS feed (Line {e.lineno}, Col {e.offset})")
-            st.info(f"Parse error: {str(e)[:100]}")
+            # Get error details safely
+            error_line = getattr(e, 'lineno', '?')
+            error_col = getattr(e, 'offset', '?')
+            error_msg = str(e)
+            
+            st.error(f"❌ Could not parse RSS feed (Line {error_line}, Col {error_col})")
+            st.info(f"Parse error: {error_msg[:100]}\n\nTry using the manual input option instead.")
+            return []
+        except Exception as e3:
+            st.error(f"❌ Unexpected error parsing RSS: {str(e3)[:100]}")
             return []
 
     releases = []
