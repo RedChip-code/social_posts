@@ -178,45 +178,61 @@ def fetch_rss_feed(ticker):
     
     url = f"https://redchip.com/rss/company/{ticker.lower()}"
     
+    # Try with requests library first (more reliable in various environments)
     try:
-        req = urllib.request.Request(
-            url,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; RedChip Agent)"}
-        )
-        with urllib.request.urlopen(req, timeout=15) as response:
-            content = response.read()
-            
+        response = requests.get(url, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
+        response.raise_for_status()
+        content = response.content
+        print(f"[DEBUG] Fetched {len(content)} bytes via requests")
     except Exception as e:
-        error_msg = str(e)
-        st.error(f"❌ Could not fetch RSS for {ticker}")
-        st.warning(
-            f"**Status:** {error_msg[:80]}\n\n"
-            f"**Why this happens:**\n"
-            f"- The RSS endpoint for {ticker} may not be available\n"
-            f"- RedChip's RSS feed service may have changed\n\n"
-            f"**What to do:**\n"
-            f"1. **Manually paste a press release** — Use the form below to add content directly\n"
-            f"2. **Check RedChip directly** — Visit redchip.com to find recent releases\n"
-            f"3. **Try a different ticker** — Some companies may have more frequent updates"
-        )
-        return []
+        print(f"[DEBUG] Requests failed: {str(e)[:80]}, trying urllib")
+        # Fallback to urllib
+        try:
+            req = urllib.request.Request(
+                url,
+                headers={"User-Agent": "Mozilla/5.0 (compatible; RedChip Agent)"}
+            )
+            with urllib.request.urlopen(req, timeout=20) as response:
+                content = response.read()
+                print(f"[DEBUG] Fetched {len(content)} bytes via urllib")
+        except Exception as e2:
+            error_msg = str(e2)
+            print(f"[DEBUG] Network error: {error_msg[:80]}")
+            st.error(f"❌ Network error fetching RSS for {ticker}")
+            st.warning(
+                f"**Error:** {error_msg[:80]}\n\n"
+                f"**What to do:**\n"
+                f"1. **Manually paste a press release** — Use the form below\n"
+                f"2. **Check your internet connection**\n"
+                f"3. **Try a different ticker**"
+            )
+            return []
 
-    text = content.decode('utf-8', errors='ignore')
+    # Decode content
+    try:
+        text = content.decode('utf-8')
+    except:
+        text = content.decode('utf-8', errors='ignore')
+    
+    print(f"[DEBUG] Decoded to {len(text)} characters")
+    print(f"[DEBUG] First 200 chars: {text[:200]}")
+    
     releases = []
     
-    # Strategy 1: Try standard XML parsing first
+    # Strategy 1: Try standard XML parsing
     try:
         root = ET.fromstring(text.encode('utf-8'))
         channel = root.find("channel")
         items = channel.findall("item") if channel is not None else root.findall("item")
         
-        if items:
+        print(f"[DEBUG] XML parsing found {len(items) if items else 0} items")
+        
+        if items and len(items) > 0:
             for item in items:
                 title = item.findtext("title", "").strip()
                 link = item.findtext("link", "").strip()
                 pub_date = item.findtext("pubDate", "").strip()
 
-                # Decode HTML entities in title
                 if title:
                     title = unescape(title)
 
@@ -229,60 +245,55 @@ def fetch_rss_feed(ticker):
                     })
             
             if releases:
+                print(f"[DEBUG] XML strategy succeeded with {len(releases)} items")
                 return releases
-    except ET.ParseError:
-        # XML parsing failed, proceed to regex fallback
-        pass
-    except Exception:
-        pass
+    except Exception as xml_err:
+        print(f"[DEBUG] XML parsing failed: {type(xml_err).__name__}: {str(xml_err)[:80]}")
     
-    # Strategy 2: Use regex-based extraction (more lenient)
+    # Strategy 2: Regex extraction
     try:
-        # Try different item delimiters
-        item_patterns = [
-            r'<item>\s*(.*?)\s*</item>',  # with whitespace tolerance
-            r'<item>(.*?)</item>',         # strict
-        ]
+        item_pattern = r'<item>([\s\S]*?)</item>'
+        items_match = re.findall(item_pattern, text)
         
-        items_match = []
-        for pattern in item_patterns:
-            items_match = re.findall(pattern, text, re.DOTALL)
-            if items_match:
-                break
+        print(f"[DEBUG] Regex found {len(items_match)} items")
         
         if items_match:
             for item_text in items_match:
-                # Extract title (handle CDATA)
-                title_match = re.search(r'<title>\s*<!\[CDATA\[(.*?)\]\]>\s*</title>', item_text, re.DOTALL)
-                if not title_match:
-                    title_match = re.search(r'<title>\s*(.*?)\s*</title>', item_text, re.DOTALL)
+                # Try CDATA first, then plain text
+                title = None
+                tm = re.search(r'<title>\s*<!\[CDATA\[(.*?)\]\]>\s*</title>', item_text, re.DOTALL)
+                if tm:
+                    title = tm.group(1).strip()
+                else:
+                    tm = re.search(r'<title>(.*?)</title>', item_text, re.DOTALL)
+                    if tm:
+                        title = tm.group(1).strip()
                 
-                # Extract link
-                link_match = re.search(r'<link>\s*(.*?)\s*</link>', item_text, re.DOTALL)
+                lm = re.search(r'<link>(.*?)</link>', item_text, re.DOTALL)
+                link = lm.group(1).strip() if lm else None
                 
-                # Extract pubDate
-                pubdate_match = re.search(r'<pubDate>\s*(.*?)\s*</pubDate>', item_text, re.DOTALL)
+                pm = re.search(r'<pubDate>(.*?)</pubDate>', item_text, re.DOTALL)
+                pub_date = pm.group(1).strip() if pm else ""
                 
-                if title_match and link_match:
-                    title = unescape(title_match.group(1).strip())
-                    link = link_match.group(1).strip()
-                    pub_date = pubdate_match.group(1).strip() if pubdate_match else ""
-                    
+                if title and link:
+                    title = unescape(title)
                     releases.append({
                         "title": title,
                         "url": link,
                         "pub_date": pub_date,
                         "ticker": ticker
                     })
-            
-            if releases:
-                return releases
-    except Exception:
-        pass
+        
+        if releases:
+            print(f"[DEBUG] Regex strategy succeeded with {len(releases)} items")
+            return releases
+    except Exception as regex_err:
+        print(f"[DEBUG] Regex parsing failed: {type(regex_err).__name__}: {str(regex_err)[:80]}")
     
-    # If we got here, both strategies failed
+    # Both failed
+    print(f"[DEBUG] Both parsing strategies failed")
     st.error(f"❌ Could not parse RSS feed for {ticker}")
-    st.info("The RSS feed format is not recognized. Use the manual input option instead.")
+    st.info("The RSS feed could not be parsed. Try the manual input option.")
     return []
 
 def scrape_press_release(url):
