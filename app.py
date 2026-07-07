@@ -179,7 +179,6 @@ def fetch_rss_feed(ticker):
     url = f"https://redchip.com/rss/company/{ticker.lower()}"
     
     try:
-        # Use standard SSL context (safe by default)
         req = urllib.request.Request(
             url,
             headers={"User-Agent": "Mozilla/5.0 (compatible; RedChip Agent)"}
@@ -202,34 +201,63 @@ def fetch_rss_feed(ticker):
         )
         return []
 
+    text = content.decode('utf-8', errors='ignore')
+    
+    # Strategy: Extract items using regex instead of XML parsing to avoid malformed XML issues
     try:
-        # Try to parse as-is first
-        root = ET.fromstring(content)
+        # First, try standard XML parsing
+        root = ET.fromstring(text.encode('utf-8'))
     except ET.ParseError as e:
-        # If parsing fails, try cleaning up common issues
+        # If XML parsing fails, use regex-based extraction (more lenient)
         try:
-            text = content.decode('utf-8', errors='ignore')
+            releases = []
             
-            # Try to fix common XML issues
-            # Fix unclosed tags in CDATA sections
-            text = re.sub(r'(<description><!\[CDATA\[.*?)\s*(?=\]\]></description>)', r'\1', text, flags=re.DOTALL)
+            # Extract items using regex - more forgiving than XML parsing
+            item_pattern = r'<item>(.*?)</item>'
+            items_match = re.findall(item_pattern, text, re.DOTALL)
             
-            # Re-encode to bytes
-            content = text.encode('utf-8')
-            root = ET.fromstring(content)
-        except ET.ParseError as e2:
-            # Get error details safely
+            if not items_match:
+                st.error(f"❌ No items found in RSS feed")
+                return []
+            
+            for item_text in items_match:
+                # Extract title
+                title_match = re.search(r'<title><!\[CDATA\[(.*?)\]\]></title>', item_text, re.DOTALL)
+                if not title_match:
+                    title_match = re.search(r'<title>(.*?)</title>', item_text, re.DOTALL)
+                
+                # Extract link
+                link_match = re.search(r'<link>(.*?)</link>', item_text, re.DOTALL)
+                
+                # Extract pubDate
+                pubdate_match = re.search(r'<pubDate>(.*?)</pubDate>', item_text, re.DOTALL)
+                
+                if title_match and link_match:
+                    title = unescape(title_match.group(1).strip())
+                    link = link_match.group(1).strip()
+                    pub_date = pubdate_match.group(1).strip() if pubdate_match else ""
+                    
+                    releases.append({
+                        "title": title,
+                        "url": link,
+                        "pub_date": pub_date,
+                        "ticker": ticker
+                    })
+            
+            if releases:
+                return releases
+            else:
+                st.error("❌ Could not extract items from RSS feed")
+                return []
+                
+        except Exception as e2:
             error_line = getattr(e, 'lineno', '?')
             error_col = getattr(e, 'offset', '?')
-            error_msg = str(e)
-            
             st.error(f"❌ Could not parse RSS feed (Line {error_line}, Col {error_col})")
-            st.info(f"Parse error: {error_msg[:100]}\n\nTry using the manual input option instead.")
+            st.info(f"The RSS feed has structural issues. Use manual input instead.")
             return []
-        except Exception as e3:
-            st.error(f"❌ Unexpected error parsing RSS: {str(e3)[:100]}")
-            return []
-
+    
+    # If we got here, XML parsing succeeded
     releases = []
     channel = root.find("channel")
     items = channel.findall("item") if channel is not None else root.findall("item")
