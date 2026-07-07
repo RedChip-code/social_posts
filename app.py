@@ -173,33 +173,49 @@ def get_available_client_files(ticker):
 def fetch_rss_feed(ticker):
     """Fetch RSS feed for a given ticker."""
     import urllib.request
-    import ssl
+    from html import unescape
     
     url = f"https://redchip.com/rss/company/{ticker.lower()}"
     
     try:
-        # Use urllib for maximum compatibility
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        
+        # Use standard SSL context (safe by default)
         req = urllib.request.Request(
             url,
-            headers={"User-Agent": "Mozilla/5.0"}
+            headers={"User-Agent": "Mozilla/5.0 (compatible; RedChip Agent)"}
         )
-        with urllib.request.urlopen(req, context=ctx, timeout=15) as response:
+        with urllib.request.urlopen(req, timeout=15) as response:
             content = response.read()
             
     except Exception as e:
-        st.error(f"❌ Could not fetch RSS for {ticker}: {str(e)[:100]}")
-        st.info("💡 Tip: You can manually add press releases instead of using RSS")
+        error_msg = str(e)
+        st.error(f"❌ Could not fetch RSS for {ticker}")
+        st.warning(
+            f"**Status:** {error_msg[:80]}\n\n"
+            f"**Why this happens:**\n"
+            f"- The RSS endpoint for {ticker} may not be available\n"
+            f"- RedChip's RSS feed service may have changed\n\n"
+            f"**What to do:**\n"
+            f"1. **Manually paste a press release** — Use the form below to add content directly\n"
+            f"2. **Check RedChip directly** — Visit redchip.com to find recent releases\n"
+            f"3. **Try a different ticker** — Some companies may have more frequent updates"
+        )
         return []
 
     try:
+        # Try to parse as-is first
         root = ET.fromstring(content)
     except ET.ParseError as e:
-        st.error(f"❌ Could not parse RSS for {ticker}: {e}")
-        return []
+        # If parsing fails, try cleaning up common issues
+        try:
+            # Decode and clean encoding issues
+            text = content.decode('utf-8', errors='ignore')
+            # Re-encode to bytes
+            content = text.encode('utf-8')
+            root = ET.fromstring(content)
+        except ET.ParseError as e2:
+            st.error(f"❌ Could not parse RSS feed (Line {e.lineno}, Col {e.offset})")
+            st.info(f"Parse error: {str(e)[:100]}")
+            return []
 
     releases = []
     channel = root.find("channel")
@@ -209,6 +225,10 @@ def fetch_rss_feed(ticker):
         title = item.findtext("title", "").strip()
         link = item.findtext("link", "").strip()
         pub_date = item.findtext("pubDate", "").strip()
+
+        # Decode HTML entities in title
+        if title:
+            title = unescape(title)
 
         if title and link:
             releases.append({
@@ -261,87 +281,142 @@ def generate_social_content(headline, body, url, ticker, master_examples, client
 
 You are drafting social media content for a new press release from one of RedChip's clients (ticker: {ticker}).
 
-You have been given two sets of reference materials:
+CRITICAL: Before drafting any content, study the MASTER EXAMPLES section below and understand how information flows from the original press release into each social format. Your task is not to rewrite press releases—it's to extract what matters most to investors and translate it into clear, grounded, analytical posts.
 
-1. MASTER EXAMPLES — the Social Content Reference Guide, which contains RedChip's approved tone of voice, guiding principles, and real examples of approved posts for every format. Study these carefully and match them precisely in style, structure, and analytical depth.
-
-2. CLIENT REFERENCE FILES — fact sheets, investor decks, research reports, and other materials specific to {ticker}. Use these for accurate company context, key facts, and messaging.
-
-{"=" * 60}
-SOCIAL CONTENT REFERENCE GUIDE (Tone, Format & Approved Examples):
-{"=" * 60}
+{"=" * 70}
+MASTER EXAMPLES (Study the before-and-after transformation)
+{"=" * 70}
 {master_examples if master_examples else "No master examples provided."}
 
-{"=" * 60}
-CLIENT REFERENCE FILES FOR {ticker}:
-{"=" * 60}
+{"=" * 70}
+CLIENT REFERENCE FILES FOR {ticker}
+{"=" * 70}
 {client_reference if client_reference else "No client reference files provided."}
 
-{"=" * 60}
-PRESS RELEASE:
-{"=" * 60}
+{"=" * 70}
+PRESS RELEASE TO CONVERT
+{"=" * 70}
 Headline: {headline}
 Link: {url}
 
 {body[:3000]}
 
-{"=" * 60}
-TONE OF VOICE & WRITING INSTRUCTIONS:
-{"=" * 60}
-You are writing for RedChip's investor audience — small-cap investors, analysts, fund managers,
-and both retail and institutional investors. They are financially literate, move fast, and can spot
-hype immediately. Write like an informed IR translator, not a promoter.
+{"=" * 70}
+TONE OF VOICE & CONTENT STRATEGY
+{"=" * 70}
 
-GUIDING PRINCIPLES:
-1. Always open with the company name and ticker symbol so investors know immediately
-   who this is about and what happened.
-2. Translate, don't transcribe. Restate the news in plain language, then explain what it
-   means for the company's trajectory — revenue potential, market position, regulatory
-   pathway, execution progress.
-3. Make numbers do the work. Always surface specific figures from the press release.
-   Concrete numbers anchor the story and give investors something to evaluate.
-4. Structure for scanners. Use "Why Investors Should Be Watching" or "Key Investor
-   Takeaways" sections with bullet points to surface the most important details fast.
-5. Confident, not promotional. No exclamation points to manufacture excitement. No hype.
-   The news speaks for itself — frame it clearly.
-6. Match the platform format exactly as specified below.
+Your audience: Small-cap investors, analysts, fund managers, retail and institutional investors. They're financially literate, fast-moving, and can spot hype immediately.
 
-WHAT TO AVOID:
-- Vague language ("exciting opportunity," "game-changing," "revolutionary")
-- Reproducing press release boilerplate verbatim
-- Missing the ticker symbol
-- Burying the key number
-- Anything that reads like an ad rather than informed IR commentary
-- Exclamation points used for hype
+Your job: Take what the company announced, discern what matters most to investors, and explain why it matters, what to watch next, and what the signal is beneath the headline.
 
-{"=" * 60}
-OUTPUT INSTRUCTIONS:
-{"=" * 60}
-Produce all eight outputs below. Use exactly these headers with nothing else between them.
+KEY GUIDING PRINCIPLES (Follow these in order):
+
+1. LEAD WITH TICKER AND THE NEWS
+   - Every post opens with Company Name $TICKER: and a specific, high-impact headline
+   - Investors must know immediately who this is and what happened
+   - No generic announcement language
+
+2. RANK THE NEWS, THEN LEAD WITH WHAT RANKS HIGHEST
+   - Prioritize in this order: quantified financial impact (revenue, margin, deal size) > 
+     material catalysts (partnerships, approvals, contracts) > substantiated superlatives 
+     (first, largest, only) > strategic commentary > company boilerplate
+   - The highest-ranking item anchors the headline
+   - Boilerplate never appears in social posts
+
+3. SAY IT ONCE
+   - Every fact appears in exactly one place—either headline or bullets, never both (even reworded)
+   - If a bullet just restates the headline stat, cut it and replace with unused information, or drop it
+   - No redundancy
+
+4. TRANSLATE, DON'T TRANSCRIBE
+   - Don't just restate the press release
+   - Restate the news in plain language, then explain what it means for the company's trajectory
+   - Address: revenue potential, market position, regulatory pathway, execution progress
+
+5. MAKE THE NUMBERS DO THE WORK
+   - Specific figures build credibility: $2.8B project value, 20,736 GPUs, 80 MW capacity
+   - Concrete numbers anchor the story and give investors something to evaluate
+   - Never use vague intensifiers like "significant," "substantial," "major"
+
+6. STRUCTURE FOR SCANNERS
+   - Investor audiences skim
+   - Use "Why Investors Should Be Watching" or "Key Investor Takeaways" with bullet points
+   - Surface most important details fast
+   - Each bullet should be distinct (no overlap with headline)
+
+7. CONFIDENT, NOT PROMOTIONAL
+   - No hype. No exclamation points to manufacture excitement
+   - No vague language: "exciting opportunity," "game-changing," "revolutionary," "innovative"
+   - News speaks for itself. Your job is to frame it clearly
+   - Tone: analytical, informed, matter-of-fact
+
+8. MATCH THE PLATFORM
+   - X (Twitter): Punchy analytical take. Tight paragraphs. Clear so-what. Specific bullets.
+   - LinkedIn/Instagram/Facebook: Fuller breakdown. Emojis as section markers (not decoration). 
+     Bullet points. Always include link to full release.
+
+{"=" * 70}
+OUTPUT FORMAT
+{"=" * 70}
+
+Produce exactly eight outputs below. Use ONLY these headers (nothing else between them):
 
 GRAPHIC TITLE 1:
-[A sharp, specific headline for a social media graphic. Lead with the company name and what happened. Surface the most compelling number or milestone. Match the style of the graphic title examples in the reference guide. One sentence, no period.]
+[A sharp, specific headline for a social media graphic. Lead with company name and what happened. 
+Surface the most compelling number or milestone. No period. One sentence.]
 
 GRAPHIC SUBTITLE 1:
-[One sentence expanding on the headline — adds context, a key figure, or the investor angle. No period.]
+[One sentence expanding on the headline—adds context, a key figure, or the investor angle. 
+No period.]
 
 GRAPHIC TITLE 2:
-[A different angle on the same news — reframe around a different number, milestone, or implication. One sentence, no period.]
+[A different angle on the same news—reframe around a different number, milestone, or implication. 
+One sentence, no period.]
 
 GRAPHIC SUBTITLE 2:
 [One sentence expanding on Title 2. No period.]
 
 X POST 1:
-[Long-form analytical post. Open with: Company Name $TICKER: [Compelling Headline]. Then write tight analytical paragraphs — lead with the news, then the so-what. Surface the most important number in the first or second paragraph. Close with a forward-looking investor takeaway. Use "Why Investors Should Be Watching:" with bullet points for complex announcements. No emojis. No exclamation points. Match the length and depth of the X examples in the reference guide.]
+[Long-form analytical post for Twitter/X.
+- Open with: Company Name $TICKER: [Compelling Headline]
+- Tight analytical paragraphs (lead with news, then the so-what)
+- Surface most important number in first or second paragraph
+- Close with forward-looking investor takeaway
+- Include "Why Investors Should Be Watching:" with bullet points for complex announcements
+- No emojis. No exclamation points
+- Match the length and depth of X examples in the reference guide]
 
 X POST 2:
-[Long-form analytical post from a different angle. Same format rules as Post 1. Different lead, different framing, different takeaway.]
+[Long-form analytical post from a different angle—same format as Post 1, but different lead, 
+different framing, different takeaway]
 
 LINKEDIN/INSTAGRAM/FACEBOOK POST 1:
-[Open with a relevant emoji followed by Company Name (Exchange: TICKER): and a compelling headline. Write a full breakdown: what happened, why it matters, what investors should watch. Use emojis as section markers. Include "Why investors should be paying attention:" or "Key Investor Takeaways:" with bullet points surfacing key figures and milestones. Close with: Read the full PR: {url}. End with 5-10 relevant hashtags using standard # format, e.g. #TICKER #Sector #Investing.]
+[LinkedIn/Facebook/Instagram post.
+- Open with: relevant emoji + Company Name (Exchange: TICKER): [Compelling Headline]
+- Full breakdown: what happened, why it matters, what investors should watch
+- Use emojis as section markers (📊 for metrics, 💡 for takeaway, 🔍 for analysis, etc.)
+- Include "Why investors should be paying attention:" or "Key Investor Takeaways:" with bullet points
+- Surface key figures and milestones in bullets
+- Close with: Read the full PR: {url}
+- End with 5-10 relevant hashtags (#TICKER, #Sector, #Investing, etc.)
+- No period on section headers
+- Length: 200-400 words]
 
 LINKEDIN/INSTAGRAM/FACEBOOK POST 2:
-[Same format rules. Different angle, different lead emoji, different hook, different bullet point emphasis.]
+[Same format as Post 1—different angle, different lead emoji, different hook, different bullet 
+point emphasis]
+
+IMPORTANT CHECKLIST BEFORE SUBMITTING:
+✓ Ticker symbol in first line of each post
+✓ Lead fact is highest-ranking (financial > catalyst > superlative > commentary)
+✓ No boilerplate ("pleased to announce," "excited," etc.)
+✓ Every number is concrete (no "significant," "substantial," "leading")
+✓ No exclamation points
+✓ No vague language ("game-changing," "innovative," "exciting opportunity")
+✓ Each fact appears only once (headline or bullets, never both)
+✓ Platform formatting followed exactly
+✓ Clear "so-what" (what does this mean for the company's trajectory?)
+✓ Link to full release included
 """
 
     message = api_client.messages.create(
@@ -503,11 +578,13 @@ with tab1:
 
     st.divider()
 
-    st.markdown("### Step 3: Press Release — Fetch from RSS")
+    st.markdown("### Step 3: Press Release — Fetch from RSS or Paste Manually")
 
     if not ticker:
         st.info("👆 Enter a ticker symbol above to fetch press releases")
     else:
+        # RSS Feed Option
+        st.markdown("#### 📡 Option A: Fetch from RSS Feed")
         if st.button("📡 Fetch Latest Press Releases", use_container_width=True):
             with st.spinner(f"📡 Fetching RSS feed for {ticker}..."):
                 fetched = fetch_rss_feed(ticker)
@@ -517,7 +594,7 @@ with tab1:
                 st.session_state.expanded_release = 0
             else:
                 st.session_state.releases = []
-                st.warning(f"❌ No press releases found for {ticker}")
+                # Error message handled in fetch_rss_feed function
 
         # Always render releases from session state so buttons survive reruns
         releases = st.session_state.get("releases", [])
@@ -588,6 +665,56 @@ with tab1:
                                 st.success(f"✅ Valid: {pr_headline[:50]}...")
                             else:
                                 st.warning("⚠️ Could not scrape this release")
+        
+        # Manual Input Option
+        st.markdown("#### ✏️ Option B: Paste Press Release Manually")
+        st.info("If RSS isn't available, paste the details below:")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            manual_title = st.text_input("Press Release Title", placeholder="e.g., Company Announces Q1 Results", key="manual_title")
+        with col2:
+            manual_url = st.text_input("Press Release URL", placeholder="https://example.com/press-release", key="manual_url")
+        
+        manual_body = st.text_area(
+            "Press Release Content (first 3000 chars will be used)",
+            placeholder="Paste the full press release text here...",
+            height=150,
+            key="manual_body"
+        )
+        
+        if st.button("✨ Generate from Manual Input", use_container_width=True, type="primary", key="generate_manual"):
+            if not ticker or not manual_title or not manual_url or not manual_body:
+                st.error("❌ Please fill in all fields: Ticker, Title, URL, and Content")
+            elif not api_key:
+                st.error("❌ Anthropic API Key is required (paste in sidebar)")
+            else:
+                with st.spinner("🔄 Loading reference documents..."):
+                    client_reference_text = read_client_files_from_folder(ticker)
+
+                with st.spinner("🤖 Generating social content with Claude..."):
+                    try:
+                        social_content = generate_social_content(
+                            manual_title,
+                            manual_body,
+                            manual_url,
+                            ticker,
+                            master_guide_text,
+                            client_reference_text
+                        )
+
+                        st.session_state.last_result = {
+                            "ticker": ticker,
+                            "headline": manual_title,
+                            "url": manual_url,
+                            "summary": manual_body[:500],
+                            "social_content": social_content,
+                            "source": "Manual Input"
+                        }
+                        st.success("✅ Content generated!")
+
+                    except Exception as e:
+                        st.error(f"❌ Error generating content: {str(e)}")
 
     if hasattr(st.session_state, 'last_result'):
         st.divider()
@@ -612,12 +739,29 @@ with tab2:
 1. Get your **Anthropic API Key** from [console.anthropic.com](https://console.anthropic.com)
 2. Paste it in the Configuration panel on the left
 3. Add client reference docs to `client-files/{TICKER}/` (factsheets, investor decks, etc.)
-4. Enter a ticker, fetch press releases, click Generate
+4. Enter a ticker and either:
+   - **Fetch from RSS** — if available for your ticker
+   - **Paste manually** — if RSS isn't available
 
 The AI will produce:
 - 2 Graphic titles + subtitles (for social media graphics)
 - 2 X/Twitter analytical posts
 - 2 LinkedIn/Instagram/Facebook posts
+    """)
+
+    st.markdown("### 📡 About RSS Feeds")
+    st.warning("""
+**Current Status:** RedChip's RSS feed may have limited availability or changed formats.
+
+**If RSS isn't working:**
+- ✅ Use the **Manual Input** option to paste press releases directly
+- ✅ The manual input is just as powerful — you control exactly what content is analyzed
+- 💡 Check RedChip's website directly for recent releases
+- 💡 Copy-paste the full press release text for best results
+
+**If RSS works:**
+- The feed will auto-populate recent releases for your ticker
+- Click "Generate Social Content" to process any release
     """)
 
     st.markdown("### 🎯 Reference Document Best Practices")
@@ -639,12 +783,17 @@ The AI will produce:
     st.markdown("""
 **Content not generating?**
 - Check your API key is valid
-- Ensure the press release URL is accessible
+- Ensure the press release URL is accessible (for RSS) or paste full text (for manual)
+- If using RSS, try the manual input option instead
+
+**RSS fetch failing?**
+- This is expected — use the manual input option instead
+- Manual input gives you more control over what content is analyzed anyway
 
 **Quality not matching your style?**
 - Add a more detailed `master_guide.md` with real approved examples
 - Include more client reference documents in `client-files/{TICKER}/`
-- Ensure the press release page is scrapeable
+- Ensure the press release content is comprehensive
 
 **Need to make changes?**
 - Generate new content with updated documents or a different release
