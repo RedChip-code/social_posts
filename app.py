@@ -205,6 +205,9 @@ def fetch_rss_feed(ticker):
     except:
         text = content.decode('utf-8', errors='ignore')
     
+    # VISIBILITY: Show what we got
+    st.write(f"🔍 Downloaded {len(text)} chars, first 200: {repr(text[:200])}")
+    
     releases = []
     
     # Strategy 1: XML parsing
@@ -212,6 +215,8 @@ def fetch_rss_feed(ticker):
         root = ET.fromstring(text.encode('utf-8'))
         channel = root.find("channel")
         items = channel.findall("item") if channel is not None else root.findall("item")
+        
+        st.write(f"🔍 XML found {len(items) if items else 0} items")
         
         if items:
             for item in items:
@@ -231,17 +236,21 @@ def fetch_rss_feed(ticker):
                     })
             
             if releases:
+                st.write(f"✅ XML strategy succeeded with {len(releases)} items")
                 return releases
     except Exception as e:
-        pass  # Fall through to regex
+        st.write(f"🔍 XML failed: {type(e).__name__}: {str(e)[:60]}")
     
     # Strategy 2: Regex
     try:
+        st.write(f"🔍 Trying regex pattern on {len(text)} chars")
         item_pattern = r'<item>([\s\S]*?)</item>'
         items_match = re.findall(item_pattern, text)
         
+        st.write(f"🔍 Regex found {len(items_match)} matches")
+        
         if not items_match:
-            raise Exception("Regex: No items found in text")
+            raise Exception(f"Regex: No items found (text contains: {text.count('<item>')}, {text.count('</item>')})")
         
         for item_text in items_match:
             # Extract title
@@ -272,11 +281,12 @@ def fetch_rss_feed(ticker):
                 })
         
         if releases:
+            st.write(f"✅ Regex strategy succeeded with {len(releases)} items")
             return releases
         else:
             raise Exception("Regex: No valid items extracted")
     except Exception as e:
-        raise Exception(f"Regex parsing failed: {str(e)[:60]}")
+        st.write(f"🔍 Regex failed: {str(e)[:80]}")
     
     raise Exception("Both XML and regex parsing failed")
 
