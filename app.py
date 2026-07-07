@@ -202,35 +202,66 @@ def fetch_rss_feed(ticker):
         return []
 
     text = content.decode('utf-8', errors='ignore')
+    releases = []
     
-    # Strategy: Extract items using regex instead of XML parsing to avoid malformed XML issues
+    # Strategy 1: Try standard XML parsing first
     try:
-        # First, try standard XML parsing
         root = ET.fromstring(text.encode('utf-8'))
-    except ET.ParseError as e:
-        # If XML parsing fails, use regex-based extraction (more lenient)
-        try:
-            releases = []
+        channel = root.find("channel")
+        items = channel.findall("item") if channel is not None else root.findall("item")
+        
+        if items:
+            for item in items:
+                title = item.findtext("title", "").strip()
+                link = item.findtext("link", "").strip()
+                pub_date = item.findtext("pubDate", "").strip()
+
+                # Decode HTML entities in title
+                if title:
+                    title = unescape(title)
+
+                if title and link:
+                    releases.append({
+                        "title": title,
+                        "url": link,
+                        "pub_date": pub_date,
+                        "ticker": ticker
+                    })
             
-            # Extract items using regex - more forgiving than XML parsing
-            item_pattern = r'<item>(.*?)</item>'
-            items_match = re.findall(item_pattern, text, re.DOTALL)
-            
-            if not items_match:
-                st.error(f"❌ No items found in RSS feed")
-                return []
-            
+            if releases:
+                return releases
+    except ET.ParseError:
+        # XML parsing failed, proceed to regex fallback
+        pass
+    except Exception:
+        pass
+    
+    # Strategy 2: Use regex-based extraction (more lenient)
+    try:
+        # Try different item delimiters
+        item_patterns = [
+            r'<item>\s*(.*?)\s*</item>',  # with whitespace tolerance
+            r'<item>(.*?)</item>',         # strict
+        ]
+        
+        items_match = []
+        for pattern in item_patterns:
+            items_match = re.findall(pattern, text, re.DOTALL)
+            if items_match:
+                break
+        
+        if items_match:
             for item_text in items_match:
-                # Extract title
-                title_match = re.search(r'<title><!\[CDATA\[(.*?)\]\]></title>', item_text, re.DOTALL)
+                # Extract title (handle CDATA)
+                title_match = re.search(r'<title>\s*<!\[CDATA\[(.*?)\]\]>\s*</title>', item_text, re.DOTALL)
                 if not title_match:
-                    title_match = re.search(r'<title>(.*?)</title>', item_text, re.DOTALL)
+                    title_match = re.search(r'<title>\s*(.*?)\s*</title>', item_text, re.DOTALL)
                 
                 # Extract link
-                link_match = re.search(r'<link>(.*?)</link>', item_text, re.DOTALL)
+                link_match = re.search(r'<link>\s*(.*?)\s*</link>', item_text, re.DOTALL)
                 
                 # Extract pubDate
-                pubdate_match = re.search(r'<pubDate>(.*?)</pubDate>', item_text, re.DOTALL)
+                pubdate_match = re.search(r'<pubDate>\s*(.*?)\s*</pubDate>', item_text, re.DOTALL)
                 
                 if title_match and link_match:
                     title = unescape(title_match.group(1).strip())
@@ -246,40 +277,13 @@ def fetch_rss_feed(ticker):
             
             if releases:
                 return releases
-            else:
-                st.error("❌ Could not extract items from RSS feed")
-                return []
-                
-        except Exception as e2:
-            error_line = getattr(e, 'lineno', '?')
-            error_col = getattr(e, 'offset', '?')
-            st.error(f"❌ Could not parse RSS feed (Line {error_line}, Col {error_col})")
-            st.info(f"The RSS feed has structural issues. Use manual input instead.")
-            return []
+    except Exception:
+        pass
     
-    # If we got here, XML parsing succeeded
-    releases = []
-    channel = root.find("channel")
-    items = channel.findall("item") if channel is not None else root.findall("item")
-
-    for item in items:
-        title = item.findtext("title", "").strip()
-        link = item.findtext("link", "").strip()
-        pub_date = item.findtext("pubDate", "").strip()
-
-        # Decode HTML entities in title
-        if title:
-            title = unescape(title)
-
-        if title and link:
-            releases.append({
-                "title": title,
-                "url": link,
-                "pub_date": pub_date,
-                "ticker": ticker
-            })
-
-    return releases
+    # If we got here, both strategies failed
+    st.error(f"❌ Could not parse RSS feed for {ticker}")
+    st.info("The RSS feed format is not recognized. Use the manual input option instead.")
+    return []
 
 def scrape_press_release(url):
     """Scrape full press release content from URL."""
