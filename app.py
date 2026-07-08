@@ -173,34 +173,30 @@ def get_available_client_files(ticker):
 def fetch_rss_feed(ticker):
     """Fetch RSS feed for a given ticker. Returns list of dicts or empty list on failure."""
     import urllib.request
+    import ssl
     from html import unescape
     import re
     
     url = f"https://redchip.com/rss/company/{ticker.lower()}"
     content = None
     
-    # Minimal headers - just pass as browser
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
-    }
+    # Disable SSL verification if needed (for corporate proxies)
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
     
-    # Try requests library first
+    # Use only urllib - skip requests to avoid 415 error
     try:
-        response = requests.get(url, timeout=20, headers=headers, allow_redirects=True)
-        response.raise_for_status()
-        content = response.content
-        st.write(f"🔍 Requests OK - got {response.status_code}, {len(content)} bytes")
+        req = urllib.request.Request(
+            url,
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        )
+        with urllib.request.urlopen(req, timeout=30, context=ssl_context) as response:
+            content = response.read()
+            st.write(f"🔍 Fetched {len(content)} bytes, content-type: {response.headers.get('content-type')}")
     except Exception as e:
-        st.write(f"🔍 Requests failed: {str(e)[:60]}")
-        try:
-            # Fallback to urllib with minimal headers
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req, timeout=20) as response:
-                content = response.read()
-                st.write(f"🔍 Urllib OK - {len(content)} bytes")
-        except Exception as e2:
-            st.write(f"🔍 Urllib also failed: {str(e2)[:60]}")
-            raise Exception(f"Network error: {str(e2)[:60]}")
+        st.write(f"🔍 Network error: {str(e)[:80]}")
+        raise Exception(f"Could not fetch RSS: {str(e)[:80]}")
 
     if not content:
         raise Exception("No content downloaded")
@@ -211,8 +207,13 @@ def fetch_rss_feed(ticker):
     except:
         text = content.decode('utf-8', errors='ignore')
     
-    # VISIBILITY: Show what we got
-    st.write(f"🔍 Downloaded {len(text)} chars, first 100: {repr(text[:100])}")
+    # Check what we actually got
+    st.write(f"🔍 {len(text)} chars, starts with: {repr(text[:80])}")
+    
+    if '<?xml' not in text and '<rss' not in text:
+        st.write(f"🔍 WARNING: Response doesn't look like RSS or XML!")
+        st.write(f"🔍 Full first 300 chars: {repr(text[:300])}")
+        raise Exception("Response is not XML/RSS")
     
     releases = []
     
@@ -222,7 +223,7 @@ def fetch_rss_feed(ticker):
         channel = root.find("channel")
         items = channel.findall("item") if channel is not None else root.findall("item")
         
-        st.write(f"🔍 XML found {len(items) if items else 0} items")
+        st.write(f"🔍 XML parsing found {len(items)} items")
         
         if items:
             for item in items:
@@ -242,59 +243,51 @@ def fetch_rss_feed(ticker):
                     })
             
             if releases:
-                st.write(f"✅ XML strategy succeeded with {len(releases)} items")
+                st.success(f"✅ Successfully extracted {len(releases)} releases")
                 return releases
     except Exception as e:
-        st.write(f"🔍 XML failed: {type(e).__name__}: {str(e)[:60]}")
+        st.write(f"🔍 XML parsing failed: {type(e).__name__}: {str(e)[:60]}")
     
-    # Strategy 2: Regex
+    # Strategy 2: Regex as fallback
     try:
-        st.write(f"🔍 Trying regex pattern on {len(text)} chars")
         item_pattern = r'<item>([\s\S]*?)</item>'
         items_match = re.findall(item_pattern, text)
         
-        st.write(f"🔍 Regex found {len(items_match)} matches")
+        st.write(f"🔍 Regex found {len(items_match)} items")
         
-        if not items_match:
-            raise Exception(f"Regex: No items found (text contains: {text.count('<item>')}, {text.count('</item>')})")
-        
-        for item_text in items_match:
-            # Extract title
-            title = None
-            tm = re.search(r'<title>\s*<!\[CDATA\[(.*?)\]\]>\s*</title>', item_text, re.DOTALL)
-            if tm:
-                title = tm.group(1).strip()
-            else:
-                tm = re.search(r'<title>(.*?)</title>', item_text, re.DOTALL)
+        if items_match:
+            for item_text in items_match:
+                title = None
+                tm = re.search(r'<title>\s*<!\[CDATA\[(.*?)\]\]>\s*</title>', item_text, re.DOTALL)
                 if tm:
                     title = tm.group(1).strip()
+                else:
+                    tm = re.search(r'<title>(.*?)</title>', item_text, re.DOTALL)
+                    if tm:
+                        title = tm.group(1).strip()
+                
+                lm = re.search(r'<link>(.*?)</link>', item_text, re.DOTALL)
+                link = lm.group(1).strip() if lm else None
+                
+                pm = re.search(r'<pubDate>(.*?)</pubDate>', item_text, re.DOTALL)
+                pub_date = pm.group(1).strip() if pm else ""
+                
+                if title and link:
+                    title = unescape(title)
+                    releases.append({
+                        "title": title,
+                        "url": link,
+                        "pub_date": pub_date,
+                        "ticker": ticker
+                    })
             
-            # Extract link
-            lm = re.search(r'<link>(.*?)</link>', item_text, re.DOTALL)
-            link = lm.group(1).strip() if lm else None
-            
-            # Extract pubDate
-            pm = re.search(r'<pubDate>(.*?)</pubDate>', item_text, re.DOTALL)
-            pub_date = pm.group(1).strip() if pm else ""
-            
-            if title and link:
-                title = unescape(title)
-                releases.append({
-                    "title": title,
-                    "url": link,
-                    "pub_date": pub_date,
-                    "ticker": ticker
-                })
-        
-        if releases:
-            st.write(f"✅ Regex strategy succeeded with {len(releases)} items")
-            return releases
-        else:
-            raise Exception("Regex: No valid items extracted")
+            if releases:
+                st.success(f"✅ Successfully extracted {len(releases)} releases (regex)")
+                return releases
     except Exception as e:
-        st.write(f"🔍 Regex failed: {str(e)[:80]}")
+        st.write(f"🔍 Regex parsing failed: {str(e)[:80]}")
     
-    raise Exception("Both XML and regex parsing failed")
+    raise Exception("Could not parse RSS with XML or regex")
 
 def scrape_press_release(url):
     """Scrape full press release content from URL."""
