@@ -1,11 +1,7 @@
-# RedChip Social Content Reference Guide
+# RedChip Social Content Standard
 
-## Document Purpose
+## How the Agent Should Use It
 
-### What this document is for
-This is the reference guide for RedChip's social content AI agent. Every weekday, the agent pulls fresh press releases from RedChip client companies and turns them into platform-ready social posts. This document is what the agent reads before it does anything — it sets the standard for quality, tone, and what good output looks like on each platform.
-
-### How the agent should use it
 The people seeing these posts are small-cap investors, analysts, fund managers, and both retail and institutional investors. They're financially literate, they move fast, and they don't have time for fluff. Before writing anything, the agent should check the tone section and use the examples as the benchmark. Each example provides three reference elements: the original press release, the graphic copy, and the text caption. The agent should study what information was pulled from the press release and how it was transformed into the subsequent social content, before drafting any new content for the press release.
 
 ## Tone of Voice
@@ -17,11 +13,11 @@ RedChip writes for investors, not the general public. Our audience knows what a 
 
 1. **Lead with the ticker and the news.** Every post opens with the company name and ticker symbol. Investors need to know immediately who this is about and what happened.
 
-2. **Rank the news, then lead with what ranks highest.** Not every fact in a release matters equally to investors. Prioritize in this order: quantified financial impact (revenue, margin, deal size) > material catalysts (partnerships, approvals, contracts) > substantiated superlatives (first, largest, only) > strategic commentary > company boilerplate. The highest-ranking item anchors the headline — boilerplate never makes it on the post.
+2. **Rank the news, then lead with what ranks highest.** Not every fact in a release matters equally to investors. Prioritize in this order: quantified financial impact (revenue, margin, deal size) > material catalysts (partnerships, approvals, contracts) > substantiated superlatives (first, largest, only) > strategic commentary > company boilerplate. The highest-ranking item anchors the headline — boilerplate never makes it on the post. All posts should focus on market moving information and not fall prey to focusing on product, event, or any other information that isn't truly relevant to an investor focus.
 
 3. **Say it once.** Every fact appears in exactly one place — either the opening hook or the takeaway bullets, never both, even reworded. If a bullet just restates the headline stat, cut it and replace it with a fact that hasn't been used yet, or drop the bullet.
 
-4. **Translate, don't transcribe.** A press release is raw material. Restate the news in plain language, then explain what it means for the company's trajectory — revenue potential, market position, regulatory pathway, execution progress.
+4. **Translate, don't transcribe.** A press release is raw material. Restate the news in plain language, then explain what it means for the company's trajectory — revenue potential, market position, regulatory pathway, execution progress. Do not use industry jargon or technical language that would not be understood by your average investor. Avoid industry expert language, and instead translate the information for the every-man investor.
 
 5. **Make the numbers do the work.** Specific figures build credibility. $2.8B project value, 20,736 GPUs, 80 MW of capacity — concrete numbers anchor the story and give investors something to evaluate.
 
@@ -32,7 +28,154 @@ RedChip writes for investors, not the general public. Our audience knows what a 
 8. **Match the platform.** X gets the punchy analytical take — tight paragraphs, a clear so-what. LinkedIn, Instagram, and Facebook get a fuller breakdown with emojis used as section markers (not decoration), bullet points, and a link to the full release.
 
 ### What to avoid
-Vague language ("exciting opportunity," "game-changed," "revolutionary"), reproducing press release boilerplate verbatim, missing the ticker symbol, burying the key number, and anything that reads like an ad rather than informed IR commentary.
+
+- Vague language ("exciting opportunity," "game-changing")
+- Reproducing press release boilerplate verbatim
+- Missing the ticker symbol
+- Burying the key number
+- Anything that reads like an ad rather than informed IR commentary
+
+
+## Standard Press Release Social Caption Structure
+
+### 1. Headline Line
+**Company Name (EXCHANGE: TICKER): [Event-focused headline]**
+
+- Ticker format flexes: (TSX: CLCH) or $HOVR — match whatever convention the client/platform uses
+- Headline states the news event plainly (e.g., "Shareholders Re-Elect Full Board Slate," "38-Year Aerospace Engineering Veteran Joins")
+
+### 2. Lead Paragraph
+
+- One paragraph, narrative prose (no bullets)
+- States the core news event first, then immediately contextualizes why it matters strategically (e.g., ties to production ramp-up, certification phase, etc.)
+- Typically 2 sentences
+
+### 3. Bulleted Takeaways Section
+
+- Header line varies by angle:
+  - **Key takeaways:** (works well for governance/operational updates)
+  - **Why Investors Should Be Watching:** (works well for personnel/strategic hire news)
+- Bullet symbol flexes (- or •) — pick one and stay consistent within a caption
+- 2–4 bullets, each leading with a bolded short label followed by a colon and supporting detail
+- Bullets should mix hard data (percentages, share counts, names) with interpretive framing (why it matters)
+
+### 4. Optional Closing Context Paragraph
+
+- Not always present (skip for personnel/hire news, include for governance/operational news)
+- One sentence that frames the event's significance or scale within the company's broader trajectory — useful for tempering routine news ("this is routine but...") or reinforcing momentum
+
+**Note:** For press releases pertaining to appointments of new leadership or upcoming events, bulleted lists are unnecessary. Instead stick to a formatting similar to Example 1.
+
+---
+
+## Examples
+
+### Example 1: Exyn Technologies
+
+#### Original Press Release
+
+**Exyn Technologies Presents at ROTH Capital Partners' Drone Technology in Global Development Event at the United Nations**
+
+Company Joins Leaders Across the Drone Ecosystem for Discussion on Autonomous Systems, GPS-Denied Navigation and Mission-Critical Applications
+
+Jun. 3, 2026 4:05 pm
+
+PHILADELPHIA, PA, June 03, 2026 (GLOBE NEWSWIRE) -- Exyn Technologies ("Exyn" or the "Company") (NASDAQ: EXYN, EXYNW), a leader in autonomous mapping and perception-driven navigation for complex, GPS-denied environments, today announced that Ben Williams, Chief Operating Officer of Exyn, is presenting today at ROTH Capital Partners' Drone Technology in Global Development event, being held at the United Nations in New York City. The event is being presented in collaboration with NGO Sustainability and the Permanent Mission of Ukraine to the United Nations.
+
+The event brings together diplomatic representatives, investors and representatives from public and private companies across the drone ecosystem for presentations and a roundtable discussion focused on the role of drone technology in global development, security, resilience and mission-critical applications.
+
+Exyn's presentation highlights the Company's autonomous robotics and artificial intelligence capabilities, including ExynAI, its autonomy engine designed to enable aerial and ground robotic systems to navigate, map and collect real-time 3D data in complex environments where GPS, communications or prior maps may be unavailable or unreliable. The Company's technology is used across handheld, backpack, vehicle-mounted, aerial and robotic deployments, serving customers across mining, construction, geospatial, infrastructure, industrial and mission-critical environments.
+
+#### Graphic Copy
+
+**Exyn Technologies Highlights ExynAI at United Nations Forum**
+
+#### Social Media Text
+
+**Exyn Technologies $EXYN: COO Presents ExynAI at UN-Hosted Drone Forum Focused on Security, Resilience, and Mission-Critical Applications**
+
+Exyn Technologies' Chief Operating Officer Ben Williams presented yesterday at ROTH Capital Partners' Drone Technology in Global Development event, held at the United Nations in New York City. The forum brought together diplomatic representatives, investors, and public and private drone companies to discuss the role of autonomous systems in security, resilience, and mission-critical operations.
+
+Exyn's presentation highlighted ExynAI, the company's proprietary Level 4B autonomy engine that enables aerial and ground robotic systems to navigate, map, and collect real-time 3D data in GPS-denied, communications-denied, and previously unmapped environments.
+
+For the full press release: [LINK]
+
+---
+
+### Example 2: Horizon Aircraft
+
+#### Original Press Release
+
+**Horizon Aircraft Appoints Richard Alexander as Chief Engineer of Certified Programs**
+
+Former Bombardier, Vertical Aerospace, and CAE engineering leader will help drive the development and certification of Horizon Aircraft's next-generation hybrid eVTOL
+
+Jun. 4, 2026 8:00 am
+
+TORONTO, ON / ACCESS Newswire / June 4, 2026 / New Horizon Aircraft Ltd. ("Horizon Aircraft" or the "Company") (NASDAQ:HOVR) announces that renowned aircraft engineering leader Richard Alexander has been appointed Chief Engineer of Certified Programs of Horizon Aircraft as the Company advances its certification strategy, engineering maturation, and commercialization planning for its hybrid-electric Vertical Takeoff and Landing (VTOL) aircraft, the Cavorite X7. Richard will combine his experience with that of the Company's Co-Founder, Brian Robinson, to help deliver an operationally ready and certifiable aircraft.
+
+Alexander is widely respected across the aerospace industry having managed highly technical and specialized projects that advance the design, development, build and certification of aircraft. With 38 years of aircraft development experience, Alexander has led key engineering functions across multiple aircraft programs at Bombardier, was the Head of Flight Physics at Vertical Aerospace for its VX4 eVTOL program, and most recently served as CAE's Electric Aircraft Integrator leading the battery-electric conversion of the Piper Archer training aircraft.
+
+#### Graphic Copy
+
+**Horizon Aircraft Adds Aerospace Veteran to Advance Cavorite X7 Certification**
+Former Vertical Aerospace, Bombardier, and CAE executive brings decades of aircraft development and certification experience
+
+#### Social Media Text
+
+**New Horizon Aircraft $HOVR: 38-Year Aerospace Engineering Veteran Joins to Support Cavorite X7 Certification**
+
+New Horizon Aircraft has appointed Richard Alexander as Chief Engineer of Certified Programs, adding a veteran aerospace engineer as the company advances certification and commercialization of its hybrid-electric Cavorite X7 VTOL aircraft.
+
+Alexander brings 38 years of aircraft development experience spanning commercial aviation, eVTOL, and electric aircraft programs. His background includes engineering leadership roles at Bombardier, Head of Flight Physics for Vertical Aerospace's VX4 eVTOL program, and most recently leading CAE's Electric Aircraft Integrator function for the battery-electric conversion of the Piper Archer training aircraft.
+
+**Why Investors Should Be Watching:**
+- **Certification expertise:** Alexander's background aligns directly with Horizon's next phase as it advances the Cavorite X7 through certification
+- **eVTOL experience:** His work on Vertical Aerospace's VX4 program provides firsthand experience with the technical and regulatory demands of advanced air mobility aircraft
+
+For the full press release: [LINK]
+
+---
+
+### Example 3: Clinch Resources
+
+#### Original Press Release
+
+**Clinch Resources Announces Voting Results from Its Annual General Meeting of Shareholders**
+
+Jun. 30, 2026 12:45 pm
+
+Knoxville, Tennessee -- Clinch Resources Ltd. (TSX: CLCH) ("Clinch" or the "Company") is pleased to announce the results from its annual general meeting of shareholders (the "Meeting") held earlier today.
+
+A total of 150,343,145 common shares ("Shares") were voted in person or represented by proxy at the Meeting, representing approximately 42.3% of the votes attached to all the outstanding Shares as at the record date of the Meeting.
+
+All nominees listed in the Company's management information circular dated May 15, 2026 were elected as directors of the Company, to serve until the next annual meeting of shareholders or until their successors are elected or appointed.
+
+All seven director nominees were elected with support ranging from 96.023% to 99.998% of votes cast.
+
+Coulter & Justus, P.C. was appointed as auditors of the Company to hold office until the close of the next annual meeting of the shareholders or until a successor is appointed, with 99.999% support.
+
+#### Graphic Copy
+
+**Clinch Resources: Shareholders Elect All 7 Board Nominees at Annual General Meeting**
+
+#### Social Media Text
+
+**Clinch Resources Ltd. (TSX: CLCH): Shareholders Re-Elect Full Board Slate at Annual General Meeting**
+
+Clinch Resources held its Annual General Meeting today, with shareholders voting to elect all seven director nominees and reappoint Coulter & Justus, P.C. as the Company's auditors. The meeting comes as Clinch advances toward initial 2026 production at its fully permitted Mine 8 and Lanes Branch operations in West Virginia.
+
+**Key takeaways:**
+- **Voter turnout:** 150,343,145 shares voted, representing approximately 42.3% of shares entitled to vote
+- **Director slate:** All seven nominees elected, with support ranging from 96.023% to 99.998% of votes cast
+- **Auditor reappointment:** Coulter & Justus, P.C. approved with 99.999% support
+- **Governance continuity:** Full board, including Jon Nix, Brett Young, and General Russel Honoré, remains in place heading into the company's production ramp-up
+
+This is a routine governance event rather than an operational milestone, but it reaffirms board stability at a pivotal stage as Clinch transitions from development to its first metallurgical coal production this year.
+
+Read the full PR: [LINK]
+
+---
 
 ## Examples with Before/After Analysis
 

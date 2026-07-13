@@ -193,9 +193,9 @@ def fetch_rss_feed(ticker):
         )
         with urllib.request.urlopen(req, timeout=30, context=ssl_context) as response:
             content = response.read()
-            st.write(f"🔍 Fetched {len(content)} bytes, content-type: {response.headers.get('content-type')}")
     except Exception as e:
-        st.write(f"🔍 Network error: {str(e)[:80]}")
+        st.error(f"❌ Could not fetch RSS feed for {ticker}")
+        st.info(f"**Error:** {str(e)[:100]}\n\nTry using the manual input option below.")
         raise Exception(f"Could not fetch RSS: {str(e)[:80]}")
 
     if not content:
@@ -207,12 +207,9 @@ def fetch_rss_feed(ticker):
     except:
         text = content.decode('utf-8', errors='ignore')
     
-    # Check what we actually got
-    st.write(f"🔍 {len(text)} chars, starts with: {repr(text[:80])}")
-    
     if '<?xml' not in text and '<rss' not in text:
-        st.write(f"🔍 WARNING: Response doesn't look like RSS or XML!")
-        st.write(f"🔍 Full first 300 chars: {repr(text[:300])}")
+        st.error(f"❌ Response is not valid RSS/XML")
+        st.info("This usually means the RSS endpoint returned an error page. Try the manual input option.")
         raise Exception("Response is not XML/RSS")
     
     releases = []
@@ -222,8 +219,6 @@ def fetch_rss_feed(ticker):
         root = ET.fromstring(text.encode('utf-8'))
         channel = root.find("channel")
         items = channel.findall("item") if channel is not None else root.findall("item")
-        
-        st.write(f"🔍 XML parsing found {len(items)} items")
         
         if items:
             for item in items:
@@ -243,17 +238,14 @@ def fetch_rss_feed(ticker):
                     })
             
             if releases:
-                st.success(f"✅ Successfully extracted {len(releases)} releases")
                 return releases
     except Exception as e:
-        st.write(f"🔍 XML parsing failed: {type(e).__name__}: {str(e)[:60]}")
+        pass  # Fall through to regex
     
     # Strategy 2: Regex as fallback
     try:
         item_pattern = r'<item>([\s\S]*?)</item>'
         items_match = re.findall(item_pattern, text)
-        
-        st.write(f"🔍 Regex found {len(items_match)} items")
         
         if items_match:
             for item_text in items_match:
@@ -282,10 +274,9 @@ def fetch_rss_feed(ticker):
                     })
             
             if releases:
-                st.success(f"✅ Successfully extracted {len(releases)} releases (regex)")
                 return releases
-    except Exception as e:
-        st.write(f"🔍 Regex parsing failed: {str(e)[:80]}")
+    except Exception:
+        pass
     
     raise Exception("Could not parse RSS with XML or regex")
 
@@ -371,6 +362,9 @@ KEY GUIDING PRINCIPLES (Follow these in order):
      (first, largest, only) > strategic commentary > company boilerplate
    - The highest-ranking item anchors the headline
    - Boilerplate never appears in social posts
+   - FOCUS ON MARKET-MOVING INFORMATION ONLY: Avoid focusing on product announcements, events, 
+     or information that isn't truly relevant to investor decision-making. If it doesn't affect 
+     the company's trajectory, revenue potential, or market position, it doesn't make the post.
 
 3. SAY IT ONCE
    - Every fact appears in exactly one place—either headline or bullets, never both (even reworded)
@@ -381,6 +375,9 @@ KEY GUIDING PRINCIPLES (Follow these in order):
    - Don't just restate the press release
    - Restate the news in plain language, then explain what it means for the company's trajectory
    - Address: revenue potential, market position, regulatory pathway, execution progress
+   - DO NOT USE INDUSTRY JARGON OR TECHNICAL LANGUAGE: Translate all technical terms, regulatory 
+     language, or expert terminology into language your average retail investor would understand
+   - Avoid industry expert language entirely—focus on plain English explanations of impact
 
 5. MAKE THE NUMBERS DO THE WORK
    - Specific figures build credibility: $2.8B project value, 20,736 GPUs, 80 MW capacity
@@ -635,23 +632,19 @@ with tab1:
         # RSS Feed Option
         st.markdown("#### 📡 Option A: Fetch from RSS Feed")
         if st.button("📡 Fetch Latest Press Releases", use_container_width=True):
-            st.write(f"🔍 **Debug:** Starting fetch for {ticker}")
             with st.spinner(f"📡 Fetching RSS feed for {ticker}..."):
                 try:
                     fetched = fetch_rss_feed(ticker)
-                    st.write(f"🔍 **Debug:** Got {len(fetched)} items back")
                 except Exception as debug_e:
-                    st.write(f"🔍 **Debug Error in fetch:** {type(debug_e).__name__}: {str(debug_e)}")
+                    st.error(f"❌ Error fetching RSS: {type(debug_e).__name__}")
                     fetched = []
             
             if fetched:
                 st.session_state.releases = fetched
                 st.session_state.releases_ticker = ticker
                 st.session_state.expanded_release = 0
-                st.write(f"🔍 **Debug:** Saved {len(fetched)} releases to session")
             else:
                 st.session_state.releases = []
-                st.write(f"🔍 **Debug:** Fetch returned empty list")
 
         # Always render releases from session state so buttons survive reruns
         releases = st.session_state.get("releases", [])
