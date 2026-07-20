@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import json
+import re
 from pathlib import Path
 from datetime import datetime
 import PyPDF2
@@ -171,12 +172,13 @@ def get_available_client_files(ticker):
     ]
 
 def fetch_rss_feed(ticker):
-    """Fetch RSS feed for a given ticker. Returns list of dicts or empty list on failure."""
+    """Fetch a ticker's RedChip RSS feed, with a reader fallback for blocked hosts."""
     import urllib.request
     import ssl
     from html import unescape
     import re
     import time
+    from urllib.parse import unquote, urlparse
     
     url = f"https://redchip.com/rss/company/{ticker.lower()}"
     content = None
@@ -191,6 +193,7 @@ def fetch_rss_feed(ticker):
         {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Referer": "https://www.redchip.com/",
+            "Accept": "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8",
             "Accept-Language": "en-US,en;q=0.9",
         },
         {
@@ -228,9 +231,48 @@ def fetch_rss_feed(ticker):
         text = content.decode('utf-8', errors='ignore')
     
     if '<?xml' not in text and '<rss' not in text:
-        st.error(f"❌ Response is not valid RSS/XML")
-        first_chars = text[:100].replace('\n', ' ').replace('\r', '')
-        st.info(f"**Response started with:** `{first_chars}...`\n\nThe server returned an error page instead of the RSS feed. This usually means it's blocking automated requests.\n\n**Please use the manual input option below instead.**")
+        # Some hosted environments are challenged by RedChip's edge protection.
+        # Jina Reader retrieves the public feed from a different network and returns
+        # a compact Markdown representation of each release.
+        try:
+            reader_response = requests.get(
+                f"https://r.jina.ai/http://{url}",
+                headers={"Accept": "text/plain"},
+                timeout=30,
+            )
+            reader_response.raise_for_status()
+            reader_text = reader_response.text
+            link_and_date_pattern = (
+                r'\[https?://[^\]]+\]\((https?://[^)]+)\)\s*\n\s*'
+                r'([A-Z][a-z]{2}, [^\n]+)'
+            )
+            releases = []
+            seen_urls = set()
+            for release_url, pub_date in re.findall(link_and_date_pattern, reader_text):
+                if release_url in seen_urls:
+                    continue
+                seen_urls.add(release_url)
+                slug = unquote(urlparse(release_url).path.rstrip('/').rsplit('/', 1)[-1])
+                title = slug.replace('-', ' ').title()
+                if title:
+                    releases.append({
+                        "title": title,
+                        "url": release_url,
+                        "pub_date": pub_date.strip(),
+                        "ticker": ticker,
+                    })
+
+            if releases:
+                st.info("ℹ️ RSS loaded through the public-reader fallback.")
+                return releases
+        except requests.RequestException:
+            pass
+
+        st.error("❌ Could not load the RSS feed")
+        st.info(
+            "RedChip returned an error page and the fallback service was unavailable. "
+            "Please try again shortly or use the manual input option below."
+        )
         raise Exception("Response is not XML/RSS")
     
     releases = []
@@ -302,33 +344,63 @@ def fetch_rss_feed(ticker):
     raise Exception("Could not parse RSS with XML or regex")
 
 def scrape_press_release(url):
-    """Scrape full press release content from URL."""
+    """Scrape full press-release content, including from reader fallback when blocked."""
     headers = {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        "Referer": "https://www.redchip.com/",
     }
     try:
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
     except Exception as e:
-        st.error(f"❌ Could not load press release: {e}")
-        return "", "", ""
-
-    soup = BeautifulSoup(response.text, "html.parser")
+        response = None
 
     headline = ""
-    for tag in ["h1", "h2"]:
-        el = soup.find(tag)
-        if el:
-            headline = el.get_text(strip=True)
-            break
+    full_body = ""
+    if response is not None:
+        soup = BeautifulSoup(response.text, "html.parser")
+        page_text = soup.get_text(" ", strip=True).lower()
+        is_challenge_page = any(
+            marker in page_text
+            for marker in ["one moment, please", "request is being verified", "access denied"]
+        )
 
-    paragraphs = []
-    for p in soup.find_all("p"):
-        text = p.get_text(strip=True)
-        if len(text) > 60:
-            paragraphs.append(text)
+        if not is_challenge_page:
+            for tag in ["h1", "h2"]:
+                el = soup.find(tag)
+                if el:
+                    headline = el.get_text(strip=True)
+                    break
 
-    full_body = "\n\n".join(paragraphs)
+            paragraphs = []
+            for p in soup.find_all("p"):
+                text = p.get_text(strip=True)
+                if len(text) > 60:
+                    paragraphs.append(text)
+            full_body = "\n\n".join(paragraphs)
+
+    if not full_body:
+        try:
+            reader_response = requests.get(
+                f"https://r.jina.ai/http://{url}",
+                headers={"Accept": "text/plain"},
+                timeout=30,
+            )
+            reader_response.raise_for_status()
+            reader_text = reader_response.text
+            title_match = re.search(r"^Title:\s*(.+)$", reader_text, re.MULTILINE)
+            headline = title_match.group(1).strip() if title_match else headline
+            full_body = reader_text.partition("Markdown Content:")[2].strip()
+            if full_body:
+                st.info("ℹ️ Press release loaded through the public-reader fallback.")
+        except requests.RequestException as e:
+            st.error(f"❌ Could not load press release: {e}")
+            return "", "", ""
+
+    if not full_body:
+        st.error("❌ Could not extract press-release content.")
+        return "", "", ""
+
     words = full_body.split()
     first_500 = " ".join(words[:500])
 
