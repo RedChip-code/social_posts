@@ -176,27 +176,47 @@ def fetch_rss_feed(ticker):
     import ssl
     from html import unescape
     import re
+    import time
     
     url = f"https://redchip.com/rss/company/{ticker.lower()}"
     content = None
     
-    # Disable SSL verification if needed (for corporate proxies)
+    # SSL context
     ssl_context = ssl.create_default_context()
     ssl_context.check_hostname = False
     ssl_context.verify_mode = ssl.CERT_NONE
     
-    # Use only urllib - skip requests to avoid 415 error
-    try:
-        req = urllib.request.Request(
-            url,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        )
-        with urllib.request.urlopen(req, timeout=30, context=ssl_context) as response:
-            content = response.read()
-    except Exception as e:
-        st.error(f"❌ Could not fetch RSS feed for {ticker}")
-        st.info(f"**Error:** {str(e)[:100]}\n\nTry using the manual input option below.")
-        raise Exception(f"Could not fetch RSS: {str(e)[:80]}")
+    # Multiple header options to try (increasingly browser-like)
+    header_options = [
+        {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Referer": "https://www.redchip.com/",
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+        {
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Referer": "https://www.redchip.com/",
+        },
+        {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        }
+    ]
+    
+    # Try each header option
+    for attempt, headers in enumerate(header_options):
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=30, context=ssl_context) as response:
+                content = response.read()
+                break  # Success, exit loop
+        except Exception as e:
+            if attempt == len(header_options) - 1:
+                # Last attempt failed
+                st.error(f"❌ Could not fetch RSS feed for {ticker}")
+                st.info(f"**Error:** Connection blocked or server unavailable.\n\nPlease try using the **manual input option** below instead.")
+                raise Exception(f"Could not fetch RSS after {attempt + 1} attempts: {str(e)[:60]}")
+            time.sleep(0.5)  # Brief delay before retry
+            continue
 
     if not content:
         raise Exception("No content downloaded")
@@ -209,9 +229,8 @@ def fetch_rss_feed(ticker):
     
     if '<?xml' not in text and '<rss' not in text:
         st.error(f"❌ Response is not valid RSS/XML")
-        # Show first 100 chars to diagnose
         first_chars = text[:100].replace('\n', ' ').replace('\r', '')
-        st.info(f"**Response started with:** `{first_chars}...`\n\nThis often means the RSS endpoint is blocking the request from this environment, or RedChip's server is temporarily unavailable.\n\n**Solutions:**\n1. Try again in a few moments\n2. Use the manual input option below\n3. Try a different ticker")
+        st.info(f"**Response started with:** `{first_chars}...`\n\nThe server returned an error page instead of the RSS feed. This usually means it's blocking automated requests.\n\n**Please use the manual input option below instead.**")
         raise Exception("Response is not XML/RSS")
     
     releases = []
