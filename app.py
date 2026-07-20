@@ -209,7 +209,9 @@ def fetch_rss_feed(ticker):
     
     if '<?xml' not in text and '<rss' not in text:
         st.error(f"❌ Response is not valid RSS/XML")
-        st.info("This usually means the RSS endpoint returned an error page. Try the manual input option.")
+        # Show first 100 chars to diagnose
+        first_chars = text[:100].replace('\n', ' ').replace('\r', '')
+        st.info(f"**Response started with:** `{first_chars}...`\n\nThis often means the RSS endpoint is blocking the request from this environment, or RedChip's server is temporarily unavailable.\n\n**Solutions:**\n1. Try again in a few moments\n2. Use the manual input option below\n3. Try a different ticker")
         raise Exception("Response is not XML/RSS")
     
     releases = []
@@ -635,8 +637,8 @@ with tab1:
             with st.spinner(f"📡 Fetching RSS feed for {ticker}..."):
                 try:
                     fetched = fetch_rss_feed(ticker)
-                except Exception as debug_e:
-                    st.error(f"❌ Error fetching RSS: {type(debug_e).__name__}")
+                except Exception as e:
+                    # Error already displayed in fetch_rss_feed
                     fetched = []
             
             if fetched:
