@@ -1,5 +1,9 @@
 # RedChip Social Content Standard
 
+## Document Purpose
+
+This is the reference guide for RedChip's social content AI agent. Every weekday morning, the agent pulls fresh press releases from RedChip client companies and turns them into platform-ready social posts. This document is what the agent reads before it does anything — it sets the standard for quality, tone, and what good output looks like on each platform.
+
 ## How the Agent Should Use It
 
 The people seeing these posts are small-cap investors, analysts, fund managers, and both retail and institutional investors. They're financially literate, they move fast, and they don't have time for fluff. Before writing anything, the agent should check the tone section and use the examples as the benchmark. Each example provides three reference elements: the original press release, the graphic copy, and the text caption. The agent should study what information was pulled from the press release and how it was transformed into the subsequent social content, before drafting any new content for the press release.
@@ -15,7 +19,7 @@ RedChip writes for investors, not the general public. Our audience knows what a 
 
 2. **Rank the news, then lead with what ranks highest.** Not every fact in a release matters equally to investors. Prioritize in this order: quantified financial impact (revenue, margin, deal size) > material catalysts (partnerships, approvals, contracts) > substantiated superlatives (first, largest, only) > strategic commentary > company boilerplate. The highest-ranking item anchors the headline — boilerplate never makes it on the post. All posts should focus on market moving information and not fall prey to focusing on product, event, or any other information that isn't truly relevant to an investor focus.
 
-3. **Say it once.** Every fact appears in exactly one place — either the opening hook or the takeaway bullets, never both, even reworded. If a bullet just restates the headline stat, cut it and replace it with a fact that hasn't been used yet, or drop the bullet.
+3. **Say it once.** Every fact appears in exactly one place — either the opening hook or the takeaway bullets, never both, even reworded. If a bullet just restates the headline stat, cut it and replace it with a fact that hasn't been used yet, or drop the bullet. Do not use the bullet section as a place to elaborate on a fact stated in the press release.
 
 4. **Translate, don't transcribe.** A press release is raw material. Restate the news in plain language, then explain what it means for the company's trajectory — revenue potential, market position, regulatory pathway, execution progress. Do not use industry jargon or technical language that would not be understood by your average investor. Avoid industry expert language, and instead translate the information for the every-man investor.
 
@@ -25,7 +29,9 @@ RedChip writes for investors, not the general public. Our audience knows what a 
 
 7. **Confident, not promotional.** We don't hype, we don't use exclamation points to manufacture excitement, and we never oversell. The news speaks for itself — our job is to frame it clearly.
 
-8. **Match the platform.** X gets the punchy analytical take — tight paragraphs, a clear so-what. LinkedIn, Instagram, and Facebook get a fuller breakdown with emojis used as section markers (not decoration), bullet points, and a link to the full release.
+8. **Kill promotional language, even when the news is genuinely exciting.** A material catalyst doesn't need embellishment to land — the numbers and the event carry the weight. Never use hype words ("explosive," "revolutionary," "game-changing," "skyrocketing," "can't miss"), investment-advice phrasing ("buy," "undervalued," "poised to soar"), or unverified superlatives ("world's best," "industry-leading") unless a specific number or third-party citation backs the claim. This applies with extra weight on X, where compliance risk is highest — hype language is one of the flags that can trigger review or removal under X's promotional-content standards, on top of undermining credibility with a financially literate audience.
+
+9. **Match the platform.** X gets the punchy analytical take — tight paragraphs, a clear so-what. LinkedIn, Instagram, and Facebook get a fuller breakdown with emojis used as section markers (not decoration), bullet points, and a link to the full release.
 
 ### What to avoid
 
@@ -358,7 +364,8 @@ For the full press release: [LINK]
 - [ ] Every number from the release is concrete (no "significant," "substantial," "leading")
 - [ ] No exclamation points (except rare emphasis)
 - [ ] No vague language ("game-changing," "innovative," "exciting opportunity")
-- [ ] Each fact appears only once (headline or bullets, not both)
+- [ ] No hype words, investment-advice phrasing, or unverified superlatives unless backed by a specific number or third-party citation (extra scrutiny on X)
+- [ ] Each fact appears only once (headline or bullets, not both), and bullets aren't used to elaborate on a fact already stated
 - [ ] Platform formatting followed (X = tight/analytical, LI/FB/IG = emoji-marked breakdowns)
 - [ ] "So-what" is clear (what does this mean for the company's trajectory?)
 - [ ] Link to full press release included

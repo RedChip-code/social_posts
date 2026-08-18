@@ -462,6 +462,7 @@ KEY GUIDING PRINCIPLES (Follow these in order):
 3. SAY IT ONCE
    - Every fact appears in exactly one place—either headline or bullets, never both (even reworded)
    - If a bullet just restates the headline stat, cut it and replace with unused information, or drop it
+   - Do not use the bullet section to elaborate on a fact already stated elsewhere in the post
    - No redundancy
 
 4. TRANSLATE, DON'T TRANSCRIBE
@@ -489,9 +490,19 @@ KEY GUIDING PRINCIPLES (Follow these in order):
    - News speaks for itself. Your job is to frame it clearly
    - Tone: analytical, informed, matter-of-fact
 
-8. MATCH THE PLATFORM
+8. KILL PROMOTIONAL LANGUAGE, EVEN WHEN THE NEWS IS GENUINELY EXCITING
+   - A material catalyst doesn't need embellishment to land—the numbers and the event carry the weight
+   - Never use hype words: "explosive," "revolutionary," "game-changing," "skyrocketing," "can't miss"
+   - Never use investment-advice phrasing: "buy," "undervalued," "poised to soar"
+   - Never use unverified superlatives: "world's best," "industry-leading"—unless a specific number
+     or third-party citation backs the claim
+   - This applies with extra weight on X: hype language is one of the flags that can trigger review
+     or removal under X's promotional-content standards, on top of undermining credibility with a
+     financially literate audience
+
+9. MATCH THE PLATFORM
    - X (Twitter): Punchy analytical take. Tight paragraphs. Clear so-what. Specific bullets.
-   - LinkedIn/Instagram/Facebook: Fuller breakdown. Emojis as section markers (not decoration). 
+   - LinkedIn/Instagram/Facebook: Fuller breakdown. Emojis as section markers (not decoration).
      Bullet points. Always include link to full release.
 
 {"=" * 70}
@@ -552,7 +563,8 @@ IMPORTANT CHECKLIST BEFORE SUBMITTING:
 ✓ Every number is concrete (no "significant," "substantial," "leading")
 ✓ No exclamation points
 ✓ No vague language ("game-changing," "innovative," "exciting opportunity")
-✓ Each fact appears only once (headline or bullets, never both)
+✓ No hype words, investment-advice phrasing, or unverified superlatives unless backed by a number/citation (extra scrutiny on X)
+✓ Each fact appears only once (headline or bullets, never both), and bullets don't elaborate on a fact already stated
 ✓ Platform formatting followed exactly
 ✓ Clear "so-what" (what does this mean for the company's trajectory?)
 ✓ Link to full release included
